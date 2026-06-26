@@ -41,6 +41,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: ${API_CONTAINER_NAME:-abastecimento-api-hcehqu}
+    command: sh -c "/home/node/.n8n/init-custom-nodes.sh && n8n start"
     environment:
       - N8N_HOST=${N8N_HOST:-0.0.0.0}
       - N8N_PORT=${N8N_PORT:-5678}
