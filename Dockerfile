@@ -1,7 +1,7 @@
 # ============================================
 # STAGE 1: Compilar o módulo nativo
 # ============================================
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 # Instala ferramentas de compilação
 RUN apk add --no-cache python3 make g++ gcc git
