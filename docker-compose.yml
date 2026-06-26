@@ -40,7 +40,7 @@ services:
     build: 
       context: .
       dockerfile: Dockerfile
-    container_name: ${API_CONTAINER_NAME:-abastecimento-api}
+    container_name: ${API_CONTAINER_NAME:-abastecimento-api-hcehqu}
     environment:
       - N8N_HOST=${N8N_HOST:-0.0.0.0}
       - N8N_PORT=${N8N_PORT:-5678}
@@ -48,10 +48,7 @@ services:
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:-8uJm7vYh2xNf4QsW9ZcR3tGp5LkD6aB0}
       - WEBHOOK_URL=${WEBHOOK_URL:-http://localhost:5678/}
       - N8N_DEFAULT_BINARY_DATA_MODE=filesystem
-      
-      # Habilitar pacotes comunitários (segurança do entrypoint.sh)
       - N8N_COMMUNITY_PACKAGES_ENABLED=true
-      - NODE_PATH=/usr/local/lib/node_modules
       
       # PostgreSQL
       - DB_TYPE=postgresdb
@@ -61,22 +58,20 @@ services:
       - DB_POSTGRESDB_USER=${POSTGRES_USER:-admin}
       - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD:-admin123}
       
-      # Redis (para o workflow usar)
+      # Redis
       - REDIS_HOST=${REDIS_HOST:-redis}
       - REDIS_PORT=${REDIS_PORT:-6379}
       
       # Timezone
       - TZ=${TZ:-America/Sao_Paulo}
     volumes:
-      - n8n_data:/home/node/.n8n
+      - n8n_data:/home/node/.n8n/data          # ← Dados do n8n
+      - n8n_sessions:/home/node/.n8n/sessions  # ← Sessões do WhatsApp
+      - n8n_custom_nodes:/home/node/.n8n/nodes # ← Custom nodes (Baileys)
       - ./n8n-workflows:/home/node/.n8n/workflows
       - ./media:/home/node/.n8n/media
-      - ./sessions:/home/node/.n8n/sessions
     ports:
-      # Interface do n8n
       - "${N8N_PORT:-5678}:${N8N_PORT:-5678}"
-      # Porta da API REST (se o webhook do n8n estiver configurado nela)
-      - "${API_PORT:-8001}:${N8N_PORT:-5678}"
     depends_on:
       - postgres
       - redis
