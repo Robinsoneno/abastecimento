@@ -40,7 +40,7 @@ services:
     build: 
       context: .
       dockerfile: Dockerfile
-    container_name: ${API_CONTAINER_NAME:-abastecimento-api-hcehqu}
+    container_name: ${API_CONTAINER_NAME:-abastecimento-api}
     environment:
       - N8N_HOST=${N8N_HOST:-0.0.0.0}
       - N8N_PORT=${N8N_PORT:-5678}
