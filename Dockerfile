@@ -15,23 +15,15 @@ FROM n8nio/n8n:latest
 
 USER root
 
-# Copia o node compilado para diretório temporário
-RUN mkdir -p /opt/custom-nodes/@jazario
-COPY --from=builder /tmp/build/node_modules/@jazario /opt/custom-nodes/@jazario
-RUN chown -R node:node /opt/custom-nodes
+# Cria o diretório de custom nodes e copia os arquivos
+# O n8n v2.x lê de /home/node/.n8n/custom
+RUN mkdir -p /home/node/.n8n/custom/@jazario
+COPY --from=builder /tmp/build/node_modules/@jazario/n8n-nodes-bailey /home/node/.n8n/custom/@jazario/n8n-nodes-bailey
 
-# Cria script de inicialização no diretório do n8n
-RUN echo '#!/bin/sh' > /home/node/.n8n/init-custom-nodes.sh && \
-    echo '# Copia custom nodes se não existirem' >> /home/node/.n8n/init-custom-nodes.sh && \
-    echo 'mkdir -p /home/node/.n8n/custom' >> /home/node/.n8n/init-custom-nodes.sh && \
-    echo 'if [ ! -d "/home/node/.n8n/custom/@jazario" ]; then' >> /home/node/.n8n/init-custom-nodes.sh && \
-    echo '  cp -r /opt/custom-nodes/@jazario /home/node/.n8n/custom/' >> /home/node/.n8n/init-custom-nodes.sh && \
-    echo '  chown -R node:node /home/node/.n8n/custom' >> /home/node/.n8n/init-custom-nodes.sh && \
-    echo 'fi' >> /home/node/.n8n/init-custom-nodes.sh && \
-    chmod +x /home/node/.n8n/init-custom-nodes.sh && \
-    chown node:node /home/node/.n8n/init-custom-nodes.sh
+# Ajusta permissões
+RUN chown -R node:node /home/node/.n8n
 
 ENV N8N_COMMUNITY_PACKAGES_ENABLED=true
 
-# NÃO sobrescreva ENTRYPOINT - use o padrão do n8n
+# NÃO sobrescreva ENTRYPOINT ou CMD
 USER node
