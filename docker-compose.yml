@@ -1,0 +1,81 @@
+services:
+  # ============================================
+  # POSTGRESQL - Dados permanentes
+  # ============================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres-abastecimento
+    environment:
+      POSTGRES_DB: abastecimento
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    networks:
+      - abastecimento-network
+
+  # ============================================
+  # REDIS - Sessões e estado dos fluxos
+  # ============================================
+  redis:
+    image: redis:7-alpine
+    container_name: redis-abastecimento
+    command: redis-server --appendonly yes --save 60 1
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    networks:
+      - abastecimento-network
+
+  # ============================================
+  # N8N - Automação principal
+  # ============================================
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n-abastecimento
+    environment:
+      - N8N_HOST=0.0.0.0
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:-your-encryption-key-32-chars}
+      - WEBHOOK_URL=http://localhost:5678/
+      - N8N_DEFAULT_BINARY_DATA_MODE=filesystem
+      
+      # PostgreSQL para dados do n8n (opcional, mas recomendado)
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_USER=admin
+      - DB_POSTGRESDB_PASSWORD=admin123
+      
+      # Timezone
+      - TZ=America/Sao_Paulo
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n-workflows:/home/node/.n8n/workflows
+      - ./media:/home/node/.n8n/media
+      - ./sessions:/home/node/.n8n/sessions
+    ports:
+      - "5678:5678"
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+    networks:
+      - abastecimento-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  n8n_data:
+
+networks:
+  abastecimento-network:
+    driver: bridge
