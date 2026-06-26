@@ -4,18 +4,19 @@ FROM n8nio/n8n:latest
 USER root
 
 # 2. Instala Python e ferramentas de compilação C++ (necessário para o node-gyp)
-RUN apt-get update && apt-get install -y \
+# Usando apk (Alpine Linux) em vez de apt-get (Debian/Ubuntu)
+RUN apk add --no-cache \
     python3 \
     make \
     g++ \
     gcc \
-    && rm -rf /var/lib/apt/lists/*
+    bash
 
 # 3. Instala o nó comunitário do Baileys
 RUN npm install -g @jazario/n8n-nodes-bailey
 
-# 4. (Opcional) Remove as ferramentas de compilação para economizar espaço em disco
-# RUN apt-get purge -y --auto-remove python3 make g++ gcc
+# 4. (Opcional) Remove as ferramentas de compilação para economizar espaço
+# RUN apk del python3 make g++ gcc
 
 # 5. Volta para o usuário 'node' por segurança
 USER node
