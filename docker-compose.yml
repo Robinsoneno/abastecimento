@@ -41,7 +41,6 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: ${API_CONTAINER_NAME:-abastecimento-api-hcehqu}
-    command: sh -c "/home/node/.n8n/init-custom-nodes.sh && n8n start"
     environment:
       - N8N_HOST=${N8N_HOST:-0.0.0.0}
       - N8N_PORT=${N8N_PORT:-5678}
@@ -66,10 +65,12 @@ services:
       # Timezone
       - TZ=${TZ:-America/Sao_Paulo}
     volumes:
-      - n8n_data:/home/node/.n8n
-      - n8n_sessions:/home/node/.n8n/sessions
+      # ⚠️ CRÍTICO: Monte APENAS subdiretórios, NÃO /home/node/.n8n inteiro
+      - n8n_data:/home/node/.n8n/data          # Dados do n8n (workflows, credenciais)
+      - n8n_sessions:/home/node/.n8n/sessions  # Sessões do WhatsApp
       - ./n8n-workflows:/home/node/.n8n/workflows
       - ./media:/home/node/.n8n/media
+      # ❌ NÃO monte n8n_data em /home/node/.n8n (sobrescreve os nodes!)
     ports:
       - "${N8N_PORT:-5678}:${N8N_PORT:-5678}"
     depends_on:
