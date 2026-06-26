@@ -1,5 +1,5 @@
 # ============================================
-# STAGE 1: Compilar o módulo nativo
+# STAGE 1: Compilar o módulo nativo (Node 22 necessário)
 # ============================================
 FROM node:22-alpine AS builder
 
@@ -18,17 +18,28 @@ USER root
 # Cria diretório temporário para os custom nodes
 RUN mkdir -p /opt/custom-nodes/@jazario
 
-# Copia o node compilado
+# Copia o node compilado do stage anterior
 COPY --from=builder /tmp/build/node_modules/@jazario /opt/custom-nodes/@jazario
 
 # Ajusta permissões
 RUN chown -R node:node /opt/custom-nodes
 
-# Habilita pacotes da comunidade
+# Cria script de inicialização que copia os nodes para o volume
+RUN echo '#!/bin/sh' > /docker-entrypoint-init.sh && \
+    echo '# Copia custom nodes se não existirem no volume' >> /docker-entrypoint-init.sh && \
+    echo 'if [ -d "/opt/custom-nodes/@jazario" ] && [ ! -d "/home/node/.n8n/nodes/@jazario" ]; then' >> /docker-entrypoint-init.sh && \
+    echo '  mkdir -p /home/node/.n8n/nodes' >> /docker-entrypoint-init.sh && \
+    echo '  cp -r /opt/custom-nodes/@jazario /home/node/.n8n/nodes/' >> /docker-entrypoint-init.sh && \
+    echo '  chown -R node:node /home/node/.n8n/nodes' >> /docker-entrypoint-init.sh && \
+    echo 'fi' >> /docker-entrypoint-init.sh && \
+    echo '# Executa o entrypoint original do n8n' >> /docker-entrypoint-init.sh && \
+    echo 'exec /docker-entrypoint.sh "$@"' >> /docker-entrypoint-init.sh && \
+    chmod +x /docker-entrypoint-init.sh
+
 ENV N8N_COMMUNITY_PACKAGES_ENABLED=true
 
-# Volta para o usuário node
-USER node
+# Usa o script customizado como entrypoint
+ENTRYPOINT ["/docker-entrypoint-init.sh"]
+CMD ["n8n", "start"]
 
-# NÃO sobrescreva o ENTRYPOINT ou CMD
-# O n8n já tem seu próprio entrypoint configurado
+USER node
