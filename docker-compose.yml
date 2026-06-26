@@ -50,8 +50,8 @@ services:
       - N8N_DEFAULT_BINARY_DATA_MODE=filesystem
       - N8N_COMMUNITY_PACKAGES_ENABLED=true
       
-      # ⚠️ ADICIONE ESTA LINHA PARA RESOLVER DEPENDÊNCIAS DO NODE CUSTOMIZADO
-      - NODE_PATH=/home/node/.n8n/custom/@jazario/n8n-nodes-bailey/node_modules:/usr/local/lib/node_modules
+      # ⚠️ MUDANÇA: Caminho global PRIMEIRO
+      - NODE_PATH=/usr/local/lib/node_modules:/home/node/.n8n/custom/@jazario/n8n-nodes-bailey/node_modules
       
       # PostgreSQL
       - DB_TYPE=postgresdb
