@@ -1,0 +1,502 @@
+{
+  "name": "Abastecimento Bot",
+  "nodes": [
+    {
+      "parameters": {
+        "sessionName": "abastecimento",
+        "authType": "pairingCode",
+        "phoneNumber": "",
+        "authFolder": "/home/node/.n8n/sessions"
+      },
+      "id": "bailey-trigger-1",
+      "name": "WhatsApp Trigger (Baileys)",
+      "type": "@jazario/n8n-nodes-bailey/BaileyTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.messageText}}",
+              "operation": "equals",
+              "value2": "/abast"
+            }
+          ]
+        }
+      },
+      "id": "switch-1",
+      "name": "Verifica Comando",
+      "type": "n8n-nodes-base.IF",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "command": "SCRIPT",
+        "script": "// ============================================\n// FUNÇÃO PARA PEGAR ESTADO DO USUÁRIO\n// ============================================\nconst redis = require('redis');\nconst client = redis.createClient({\n  socket: {\n    host: 'redis',\n    port: 6379\n  }\n});\n\nawait client.connect();\n\nconst userId = $json.chatId?.replace('@s.whatsapp.net', '');\nconst stateKey = `flow:${userId}`;\n\nconst stateData = await client.get(stateKey);\nconst userState = stateData ? JSON.parse(stateData) : null;\n\nawait client.quit();\n\nreturn {\n  userId: userId,\n  userState: userState,\n  messageText: $json.messageText,\n  senderName: $json.pushName || 'Usuário'\n};"
+      },
+      "id": "function-state-1",
+      "name": "Get User State",
+      "type": "n8n-nodes-base.Function",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "text",
+              "value": "🚗 *SISTEMA DE ABASTECIMENTO*\n\nPara registrar um abastecimento, siga os passos:\n\n1️⃣ *Informe a PLACA* do veículo\n   (Ex: ABC1D23 ou ABC1234)\n\nDigite a placa agora:"
+            }
+          ]
+        },
+        "additionalFields": {},
+        "sessionId": "abastecimento"
+      },
+      "id": "bailey-action-1",
+      "name": "Start Flow - Mensagem",
+      "type": "@jazario/n8n-nodes-bailey/BaileyAction",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "command": "SCRIPT",
+        "script": "// ============================================\n// SALVA ESTADO INICIAL\n// ============================================\nconst redis = require('redis');\nconst client = redis.createClient({\n  socket: {\n    host: 'redis',\n    port: 6379\n  }\n});\n\nawait client.connect();\n\nconst userId = $json.userId;\nconst stateKey = `flow:${userId}`;\n\nconst stateValue = JSON.stringify({\n  state: 'aguardando_placa',\n  data: {},\n  updatedAt: new Date().toISOString()\n});\n\nawait client.setEx(stateKey, 900, stateValue);\nawait client.quit();\n\nreturn { success: true };"
+      },
+      "id": "function-state-save-1",
+      "name": "Set Initial State",
+      "type": "n8n-nodes-base.Function",
+      "typeVersion": 1,
+      "position": [850, 450]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "text",
+              "value": "⚠️ Comando não reconhecido.\n\nDigite */abast* para iniciar ou */ajuda* para ver os comandos disponíveis."
+            }
+          ]
+        },
+        "sessionId": "abastecimento"
+      },
+      "id": "bailey-action-2",
+      "name": "Comando Inválido",
+      "type": "@jazario/n8n-nodes-bailey/BaileyAction",
+      "typeVersion": 1,
+      "position": [650, 500]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.messageText}}",
+              "operation": "equals",
+              "value2": "/ajuda"
+            }
+          ]
+        }
+      },
+      "id": "switch-ajuda-1",
+      "name": "Verifica /ajuda",
+      "type": "n8n-nodes-base.IF",
+      "typeVersion": 1,
+      "position": [650, 700]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "text",
+              "value": "📖 *COMANDOS DISPONÍVEIS*\n\n🔹 */abast* - Iniciar novo abastecimento\n🔹 */status* - Ver status do sistema\n🔹 */ultimos* - Ver seus últimos abastecimentos\n🔹 */ajuda* - Mostrar esta mensagem\n\n💡 *Dica:* Siga as instruções para registrar um abastecimento."
+            }
+          ]
+        },
+        "sessionId": "abastecimento"
+      },
+      "id": "bailey-action-ajuda",
+      "name": "Enviar Ajuda",
+      "type": "@jazario/n8n-nodes-bailey/BaileyAction",
+      "typeVersion": 1,
+      "position": [850, 700]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.messageText}}",
+              "operation": "equals",
+              "value2": "/status"
+            }
+          ]
+        }
+      },
+      "id": "switch-status-1",
+      "name": "Verifica /status",
+      "type": "n8n-nodes-base.IF",
+      "typeVersion": 1,
+      "position": [650, 900]
+    },
+    {
+      "parameters": {
+        "query": "SELECT \n    COUNT(*) as total,\n    COUNT(DISTINCT usuario_id) as usuarios_unicos,\n    COUNT(DISTINCT placa) as placas_unicas,\n    COALESCE(SUM(litros), 0) as total_litros,\n    COALESCE(AVG(litros), 0) as media_litros,\n    COUNT(*) FILTER (WHERE criado_em > NOW() - INTERVAL '24 hours') as ultimas_24h\nFROM abastecimentos;",
+        "options": {}
+      },
+      "id": "postgres-status-1",
+      "name": "Buscar Status",
+      "type": "n8n-nodes-base.Postgres",
+      "typeVersion": 2,
+      "position": [850, 900],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "SCRIPT",
+        "script": "const stats = $json[0];\nlet mensagem = '📊 *STATUS DO SISTEMA*\\n\\n';\nmensagem += `📦 Total de abastecimentos: *${stats.total}*\\n`;\nmensagem += `👥 Usuários únicos: *${stats.usuarios_unicos}*\\n`;\nmensagem += `🚗 Placas únicas: *${stats.placas_unicas}*\\n`;\nmensagem += `⛽ Total de litros: *${stats.total_litros}L*\\n`;\nmensagem += `📈 Média por abastecimento: *${Math.round(stats.media_litros)}L*\\n`;\nmensagem += `📅 Últimas 24h: *${stats.ultimas_24h}*\\n`;\n\nreturn { text: mensagem };"
+      },
+      "id": "function-status-1",
+      "name": "Formatar Status",
+      "type": "n8n-nodes-base.Function",
+      "typeVersion": 1,
+      "position": [1050, 900]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "text",
+              "value": "={{$json.text}}"
+            }
+          ]
+        },
+        "sessionId": "abastecimento"
+      },
+      "id": "bailey-action-status",
+      "name": "Enviar Status",
+      "type": "@jazario/n8n-nodes-bailey/BaileyAction",
+      "typeVersion": 1,
+      "position": [1250, 900]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.messageText}}",
+              "operation": "equals",
+              "value2": "/ultimos"
+            }
+          ]
+        }
+      },
+      "id": "switch-ultimos-1",
+      "name": "Verifica /ultimos",
+      "type": "n8n-nodes-base.IF",
+      "typeVersion": 1,
+      "position": [650, 1100]
+    },
+    {
+      "parameters": {
+        "query": "SELECT * FROM abastecimentos \nWHERE usuario_id = $1 \nORDER BY criado_em DESC \nLIMIT 5;",
+        "options": {
+          "parameterized": true
+        }
+      },
+      "id": "postgres-ultimos-1",
+      "name": "Buscar Últimos",
+      "type": "n8n-nodes-base.Postgres",
+      "typeVersion": 2,
+      "position": [850, 1100],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "SCRIPT",
+        "script": "const abastecimentos = $json;\nif (abastecimentos.length === 0) {\n  return { text: '📭 Nenhum abastecimento registrado ainda.' };\n}\n\nlet mensagem = '📋 *SEUS ÚLTIMOS ABASTECIMENTOS*\\n\\n';\nabastecimentos.forEach((a, index) => {\n  const data = new Date(a.criado_em).toLocaleDateString('pt-BR');\n  mensagem += `${index + 1}. 🚗 *${a.placa}* | ${a.km} km | ${a.litros}L\\n`;\n  mensagem += `   📅 ${data}\\n`;\n});\n\nreturn { text: mensagem };"
+      },
+      "id": "function-ultimos-1",
+      "name": "Formatar Últimos",
+      "type": "n8n-nodes-base.Function",
+      "typeVersion": 1,
+      "position": [1050, 1100]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "text",
+              "value": "={{$json.text}}"
+            }
+          ]
+        },
+        "sessionId": "abastecimento"
+      },
+      "id": "bailey-action-ultimos",
+      "name": "Enviar Últimos",
+      "type": "@jazario/n8n-nodes-bailey/BaileyAction",
+      "typeVersion": 1,
+      "position": [1250, 1100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.userState !== null}}",
+              "operation": "equals",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "switch-flow-1",
+      "name": "Tem Estado?",
+      "type": "n8n-nodes-base.IF",
+      "typeVersion": 1,
+      "position": [650, 1300]
+    },
+    {
+      "parameters": {
+        "command": "SCRIPT",
+        "script": "// ============================================\n// PROCESSADOR DE ESTADOS\n// ============================================\nconst userState = $json.userState;\nconst userId = $json.userId;\nconst messageText = $json.messageText;\nconst senderName = $json.senderName;\n\n// ============================================\n// FUNÇÃO DE VALIDAÇÃO\n// ============================================\nfunction isValidPlaca(placa) {\n  const mercosul = /^[A-Z]{3}[0-9][A-Z][0-9]{2}$/;\n  const antigo = /^[A-Z]{3}[0-9]{4}$/;\n  return mercosul.test(placa) || antigo.test(placa);\n}\n\nfunction isValidKm(km) {\n  return !isNaN(km) && parseInt(km) > 0;\n}\n\nfunction isValidLitros(litros) {\n  return !isNaN(litros) && parseFloat(litros) > 0 && parseFloat(litros) < 10000;\n}\n\nconst redis = require('redis');\nconst client = redis.createClient({\n  socket: {\n    host: 'redis',\n    port: 6379\n  }\n});\n\nawait client.connect();\n\nconst stateKey = `flow:${userId}`;\nlet response = null;\nlet newState = null;\nconst flowData = userState.data || {};\n\nswitch (userState.state) {\n  // ============================================\n  // PASSO 1: PLACA\n  // ============================================\n  case 'aguardando_placa':\n    if (!messageText) {\n      response = '⚠️ Por favor, informe a *PLACA* do veículo (ex: ABC1D23 ou ABC1234):';\n      break;\n    }\n\n    const placa = messageText.toUpperCase().trim();\n    if (!isValidPlaca(placa)) {\n      response = '❌ *Placa inválida!*\\n\\nUse o formato:\\n• Mercosul: ABC1D23\\n• Antigo: ABC1234\\n\\nDigite novamente:';\n      break;\n    }\n\n    newState = { state: 'aguardando_km', data: { placa } };\n    response = `✅ Placa *${placa}* registrada!\\n\\n2️⃣ Agora informe a *KM ATUAL* do veículo:`;\n    break;\n\n  // ============================================\n  // PASSO 2: KM\n  // ============================================\n  case 'aguardando_km':\n    if (!messageText) {\n      response = '⚠️ Por favor, informe a *KM* atual do veículo (apenas números):';\n      break;\n    }\n\n    const km = parseInt(messageText.trim());\n    if (!isValidKm(km)) {\n      response = '❌ *KM inválida!*\\n\\nDigite apenas números (ex: 15234)\\n\\nInforme a KM novamente:';\n      break;\n    }\n\n    newState = { state: 'aguardando_litros', data: { ...flowData, km } };\n    response = `✅ KM *${km}* registrada!\\n\\n3️⃣ Agora informe a *QUANTIDADE DE LITROS* abastecidos:`;\n    break;\n\n  // ============================================\n  // PASSO 3: LITROS\n  // ============================================\n  case 'aguardando_litros':\n    if (!messageText) {\n      response = '⚠️ Por favor, informe a *QUANTIDADE DE LITROS* (ex: 45.5):';\n      break;\n    }\n\n    const litros = parseFloat(messageText.trim().replace(',', '.'));\n    if (!isValidLitros(litros)) {\n      response = '❌ *Quantidade inválida!*\\n\\nDigite um número válido (ex: 45.5)\\n\\nInforme os litros novamente:';\n      break;\n    }\n\n    newState = { state: 'aguardando_foto_odometro', data: { ...flowData, litros } };\n    response = `✅ *${litros} litros* registrados!\\n\\n4️⃣ Agora envie a *FOTO DO ODÔMETRO*:\\n(Clique no 📎 e selecione a imagem)`;\n    break;\n\n  // ============================================\n  // PASSO 4: FOTO ODÔMETRO\n  // ============================================\n  case 'aguardando_foto_odometro':\n    // Verificar se recebeu imagem\n    if (!$json.media) {\n      response = '⚠️ Por favor, envie a *FOTO DO ODÔMETRO*.\\n\\nClique no 📎 e selecione a imagem:';\n      break;\n    }\n\n    // Salvar foto (precisa de um node de download de mídia)\n    const fotoOdometro = `odometro_${userId}_${Date.now()}.jpg`;\n    newState = { state: 'aguardando_foto_abastecimento', data: { ...flowData, foto_odometro: fotoOdometro } };\n    response = '✅ Foto do odômetro registrada!\\n\\n5️⃣ Agora envie a *FOTO DO ABASTECIMENTO* (bomba/nota):';\n    break;\n\n  // ============================================\n  // PASSO 5: FOTO ABASTECIMENTO\n  // ============================================\n  case 'aguardando_foto_abastecimento':\n    // Verificar se recebeu imagem\n    if (!$json.media) {\n      response = '⚠️ Por favor, envie a *FOTO DO ABASTECIMENTO*.\\n\\nClique no 📎 e selecione a imagem:';\n      break;\n    }\n\n    // Salvar foto\n    const fotoAbastecimento = `abastecimento_${userId}_${Date.now()}.jpg`;\n    \n    // Salvar no PostgreSQL (via função)\n    const pg = require('pg');\n    const pool = new pg.Pool({\n      host: 'postgres',\n      port: 5432,\n      database: 'abastecimento',\n      user: 'admin',\n      password: 'admin123'\n    });\n\n    await pool.query(\n      'SELECT registrar_abastecimento($1, $2, $3, $4, $5, $6, $7) as id',\n      [\n        userId,\n        senderName,\n        flowData.placa,\n        flowData.km,\n        flowData.litros,\n        flowData.foto_odometro || null,\n        fotoAbastecimento\n      ]\n    );\n\n    await pool.end();\n\n    // Limpa estado\n    await client.del(stateKey);\n\n    response = `✅ *ABASTECIMENTO REGISTRADO COM SUCESSO!*\\n\\n` +\n               `📋 *Dados:*\\n` +\n               `🚗 Placa: *${flowData.placa}*\\n` +\n               `📏 KM: *${flowData.km}*\\n` +\n               `⛽ Litros: *${flowData.litros}L*\\n` +\n               `📸 Fotos: 2 imagens salvas\\n` +\n               `🕐 Data: *${new Date().toLocaleDateString('pt-BR')}*\\n\\n` +\n               `Obrigado! Para novo abastecimento, digite */abast*`;\n    \n    // Resposta final (não salva novo estado)\n    break;\n\n  default:\n    await client.del(stateKey);\n    response = '⚠️ Fluxo reiniciado. Digite */abast* para começar.';\n}\n\n// Atualiza estado se necessário\nif (newState) {\n  const stateValue = JSON.stringify({\n    state: newState.state,\n    data: newState.data,\n    updatedAt: new Date().toISOString()\n  });\n  await client.setEx(stateKey, 900, stateValue);\n}\n\nawait client.quit();\n\nreturn {\n  userId: userId,\n  response: response,\n  shouldSaveState: !!newState\n};"
+      },
+      "id": "function-process-flow-1",
+      "name": "Processar Estado",
+      "type": "n8n-nodes-base.Function",
+      "typeVersion": 1,
+      "position": [850, 1300]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "text",
+              "value": "={{$json.response}}"
+            }
+          ]
+        },
+        "sessionId": "abastecimento"
+      },
+      "id": "bailey-action-flow-1",
+      "name": "Enviar Resposta do Fluxo",
+      "type": "@jazario/n8n-nodes-bailey/BaileyAction",
+      "typeVersion": 1,
+      "position": [1050, 1300]
+    }
+  ],
+  "connections": {
+    "WhatsApp Trigger (Baileys)": {
+      "main": [
+        [
+          {
+            "node": "Verifica Comando",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verifica Comando": {
+      "true": [
+        [
+          {
+            "node": "Get User State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "false": [
+        [
+          {
+            "node": "Get User State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get User State": {
+      "main": [
+        [
+          {
+            "node": "Verifica /ajuda",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verifica /ajuda": {
+      "true": [
+        [
+          {
+            "node": "Enviar Ajuda",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "false": [
+        [
+          {
+            "node": "Verifica /status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verifica /status": {
+      "true": [
+        [
+          {
+            "node": "Buscar Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "false": [
+        [
+          {
+            "node": "Verifica /ultimos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Status": {
+      "main": [
+        [
+          {
+            "node": "Formatar Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar Status": {
+      "main": [
+        [
+          {
+            "node": "Enviar Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verifica /ultimos": {
+      "true": [
+        [
+          {
+            "node": "Buscar Últimos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "false": [
+        [
+          {
+            "node": "Tem Estado?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Últimos": {
+      "main": [
+        [
+          {
+            "node": "Formatar Últimos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar Últimos": {
+      "main": [
+        [
+          {
+            "node": "Enviar Últimos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tem Estado?": {
+      "true": [
+        [
+          {
+            "node": "Processar Estado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "false": [
+        [
+          {
+            "node": "Start Flow - Mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Processar Estado": {
+      "main": [
+        [
+          {
+            "node": "Enviar Resposta do Fluxo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start Flow - Mensagem": {
+      "main": [
+        [
+          {
+            "node": "Set Initial State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "tags": ["whatsapp", "abastecimento"],
+  "id": "abastecimento-workflow",
+  "pinData": {}
+}
