@@ -1,10 +1,10 @@
 # ============================================
-# STAGE 1: Compilar o módulo nativo
+# STAGE 1: Compilar o módulo nativo (Node 22 necessário para isolated-vm)
 # ============================================
 FROM node:22-alpine AS builder
 
 RUN apk add --no-cache python3 make g++ gcc git
-WORKDIR /tmp/bailey
+WORKDIR /tmp/build
 RUN npm init -y
 RUN npm install @jazario/n8n-nodes-bailey
 
@@ -15,16 +15,29 @@ FROM n8nio/n8n:latest
 
 USER root
 
-# Copia o node compilado para o diretório de custom nodes do n8n
-COPY --from=builder /tmp/bailey/node_modules/@jazario /usr/local/lib/node_modules/@jazario
+# Cria diretório temporário para os custom nodes
+RUN mkdir -p /opt/custom-nodes/@jazario
 
-# Cria link simbólico no diretório do n8n
-RUN mkdir -p /usr/local/lib/node_modules/n8n/node_modules
-RUN ln -s /usr/local/lib/node_modules/@jazario /usr/local/lib/node_modules/n8n/node_modules/@jazario || true
+# Copia o node compilado para o diretório temporário
+COPY --from=builder /tmp/build/node_modules/@jazario /opt/custom-nodes/@jazario
 
-# Configura variáveis de ambiente
+# Cria script de inicialização que copia os nodes para o volume
+RUN echo '#!/bin/sh' > /entrypoint-custom.sh && \
+    echo 'if [ -d "/opt/custom-nodes/@jazario" ] && [ ! -d "/home/node/.n8n/nodes/@jazario" ]; then' >> /entrypoint-custom.sh && \
+    echo '  mkdir -p /home/node/.n8n/nodes' >> /entrypoint-custom.sh && \
+    echo '  cp -r /opt/custom-nodes/@jazario /home/node/.n8n/nodes/' >> /entrypoint-custom.sh && \
+    echo '  chown -R node:node /home/node/.n8n/nodes' >> /entrypoint-custom.sh && \
+    echo 'fi' >> /entrypoint-custom.sh && \
+    echo 'exec "$@"' >> /entrypoint-custom.sh && \
+    chmod +x /entrypoint-custom.sh
+
+# Ajusta permissões
+RUN chown -R node:node /opt/custom-nodes
+
 ENV N8N_COMMUNITY_PACKAGES_ENABLED=true
-ENV NODE_PATH=/usr/local/lib/node_modules:/usr/local/lib/node_modules/n8n/node_modules
 
-# Volta para node
+# Usa o script customizado como entrypoint
+ENTRYPOINT ["/entrypoint-custom.sh"]
+CMD ["n8n", "start"]
+
 USER node
