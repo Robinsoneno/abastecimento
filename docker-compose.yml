@@ -89,7 +89,10 @@ volumes:
     driver: local
   n8n_data:
     driver: local
-
+  n8n_sessions:
+    driver: local
+  n8n_custom_nodes:  # ← Adicione este
+    driver: local
 # ============================================
 # NETWORK
 # ============================================
