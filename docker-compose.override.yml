@@ -1,7 +1,0 @@
-services:
-  n8n:
-    environment:
-      - N8N_SECURE_COOKIE=false  # Apenas para dev local
-      - N8N_LOG_LEVEL=debug
-    volumes:
-      - ./local-workflows:/home/node/.n8n/workflows-local
