@@ -1,10 +1,9 @@
-FROM n8nio/n8n:latest
+FROM n8nio/n8n:latest-alpine
 
 # 1. Muda para root para instalar pacotes do sistema e npm
 USER root
 
 # 2. Instala Python e ferramentas de compilação C++ (necessário para o node-gyp)
-# Usando apk (Alpine Linux) em vez de apt-get (Debian/Ubuntu)
 RUN apk add --no-cache \
     python3 \
     make \
