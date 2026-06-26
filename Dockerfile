@@ -1,17 +1,24 @@
 FROM n8nio/n8n:latest
 
-# 1. Muda para o usuário root temporariamente para instalar pacotes globais
+# 1. Muda para root para instalar pacotes do sistema e npm
 USER root
 
-# Instala o nó comunitário do Baileys
+# 2. Instala Python e ferramentas de compilação C++ (necessário para o node-gyp)
+RUN apt-get update && apt-get install -y \
+    python3 \
+    make \
+    g++ \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# 3. Instala o nó comunitário do Baileys
 RUN npm install -g @jazario/n8n-nodes-bailey
 
-# 2. Volta para o usuário 'node' por segurança (padrão da imagem)
+# 4. (Opcional) Remove as ferramentas de compilação para economizar espaço em disco
+# RUN apt-get purge -y --auto-remove python3 make g++ gcc
+
+# 5. Volta para o usuário 'node' por segurança
 USER node
 
-# 3. Habilita pacotes comunitários via variável de ambiente
-# Isso substitui a necessidade do seu entrypoint.sh customizado
+# 6. Habilita pacotes comunitários
 ENV N8N_COMMUNITY_PACKAGES_ENABLED=true
-
-# O CMD padrão da imagem n8nio/n8n já inicia o n8n corretamente.
-# Não sobrescreva o ENTRYPOINT ou CMD.
