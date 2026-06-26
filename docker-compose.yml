@@ -51,6 +51,7 @@ services:
       
       # Habilitar pacotes comunitários (segurança do entrypoint.sh)
       - N8N_COMMUNITY_PACKAGES_ENABLED=true
+      - NODE_PATH=/usr/local/lib/node_modules
       
       # PostgreSQL
       - DB_TYPE=postgresdb
