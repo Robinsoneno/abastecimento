@@ -15,27 +15,23 @@ FROM n8nio/n8n:latest
 
 USER root
 
-# Copia o node compilado para o diretório CORRETO de custom nodes
-# O n8n carrega nodes de /home/node/.n8n/custom/
+# Copia o node compilado para diretório temporário
 RUN mkdir -p /opt/custom-nodes/@jazario
 COPY --from=builder /tmp/build/node_modules/@jazario /opt/custom-nodes/@jazario
 RUN chown -R node:node /opt/custom-nodes
 
-# Cria script de inicialização que copia os nodes para o volume
-RUN echo '#!/bin/sh' > /docker-entrypoint-init.sh && \
-    echo '# Copia custom nodes para o diretório correto' >> /docker-entrypoint-init.sh && \
-    echo 'mkdir -p /home/node/.n8n/custom' >> /docker-entrypoint-init.sh && \
-    echo 'if [ ! -d "/home/node/.n8n/custom/@jazario" ]; then' >> /docker-entrypoint-init.sh && \
-    echo '  cp -r /opt/custom-nodes/@jazario /home/node/.n8n/custom/' >> /docker-entrypoint-init.sh && \
-    echo '  chown -R node:node /home/node/.n8n/custom' >> /docker-entrypoint-init.sh && \
-    echo 'fi' >> /docker-entrypoint-init.sh && \
-    echo '# Executa o entrypoint original do n8n' >> /docker-entrypoint-init.sh && \
-    echo 'exec /docker-entrypoint.sh "$@"' >> /docker-entrypoint-init.sh && \
-    chmod +x /docker-entrypoint-init.sh
+# Cria script de inicialização no diretório do n8n
+RUN echo '#!/bin/sh' > /home/node/.n8n/init-custom-nodes.sh && \
+    echo '# Copia custom nodes se não existirem' >> /home/node/.n8n/init-custom-nodes.sh && \
+    echo 'mkdir -p /home/node/.n8n/custom' >> /home/node/.n8n/init-custom-nodes.sh && \
+    echo 'if [ ! -d "/home/node/.n8n/custom/@jazario" ]; then' >> /home/node/.n8n/init-custom-nodes.sh && \
+    echo '  cp -r /opt/custom-nodes/@jazario /home/node/.n8n/custom/' >> /home/node/.n8n/init-custom-nodes.sh && \
+    echo '  chown -R node:node /home/node/.n8n/custom' >> /home/node/.n8n/init-custom-nodes.sh && \
+    echo 'fi' >> /home/node/.n8n/init-custom-nodes.sh && \
+    chmod +x /home/node/.n8n/init-custom-nodes.sh && \
+    chown node:node /home/node/.n8n/init-custom-nodes.sh
 
 ENV N8N_COMMUNITY_PACKAGES_ENABLED=true
 
-ENTRYPOINT ["/docker-entrypoint-init.sh"]
-CMD ["n8n", "start"]
-
+# NÃO sobrescreva ENTRYPOINT - use o padrão do n8n
 USER node
