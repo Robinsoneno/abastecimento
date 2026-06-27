@@ -38,7 +38,7 @@ services:
   # ============================================
   n8n:
     image: n8nio/n8n:1.75.2  # ← Mude de 'build' para 'image' com versão específica
-    container_name: ${API_CONTAINER_NAME:-abastecimento-api-hcehqu}
+    container_name: ${API_CONTAINER_NAME:-abastecimento-api}
     environment:
       - N8N_HOST=${N8N_HOST:-0.0.0.0}
       - N8N_PORT=${N8N_PORT:-5678}
