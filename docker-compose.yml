@@ -34,12 +34,10 @@ services:
       - dokploy-network
 
   # ============================================
-  # N8N CUSTOM + BAILEYS (API + Automação)
+  # N8N - Automação (sem nodes customizados)
   # ============================================
   n8n:
-    build: 
-      context: .
-      dockerfile: Dockerfile
+    image: n8nio/n8n:1.123.16
     container_name: ${API_CONTAINER_NAME:-abastecimento-api}
     environment:
       - N8N_HOST=${N8N_HOST:-0.0.0.0}
@@ -66,7 +64,6 @@ services:
       - TZ=${TZ:-America/Sao_Paulo}
     volumes:
       - n8n_data:/home/node/.n8n
-      - n8n_sessions:/home/node/.n8n/sessions
       - ./n8n-workflows:/home/node/.n8n/workflows
       - ./media:/home/node/.n8n/media
     ports:
@@ -78,16 +75,56 @@ services:
     networks:
       - dokploy-network
 
+  # ============================================
+  # EVOLUTION API - WhatsApp Gateway
+  # ============================================
+  evolution-api:
+    image: atendai/evolution-api:latest
+    container_name: evolution-api
+    environment:
+      - SERVER_URL=${EVOLUTION_SERVER_URL:-http://localhost:8080}
+      - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY:-evolution_api_key_2026}
+      - DATABASE_CONNECTION_URI=mongodb://mongo:27017
+      - RABBITMQ_ENABLED=false
+      - WEBSOCKET_ENABLED=false
+      - LOG_LEVEL=info
+    ports:
+      - "${EVOLUTION_PORT:-8080}:8080"
+    volumes:
+      - evolution_instances:/evolution/instances
+    depends_on:
+      - mongo
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+
+  # ============================================
+  # MONGODB - Banco para Evolution API
+  # ============================================
+  mongo:
+    image: mongo:latest
+    container_name: evolution-mongo
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+
 volumes:
   postgres_data:
     driver: local
   redis_data:
     driver: local
-  n8n_data:          # ← ADICIONADO
+  n8n_data:
     driver: local
-  n8n_sessions:
+  evolution_instances:
+    driver: local
+  mongo_data:
     driver: local
 
+# ============================================
+# NETWORK
+# ============================================
 networks:
   dokploy-network:
     external: true
