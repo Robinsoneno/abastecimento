@@ -1,23 +1,5 @@
-services:
-  # ============================================
-  # POSTGRESQL - Dados permanentes
-  # ============================================
-  postgres:
-    image: postgres:${POSTGRES_VERSION:-16-alpine}
-    container_name: ${POSTGRES_CONTAINER_NAME:-postgres-abastecimento}
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-abastecimento}
-      POSTGRES_USER: ${POSTGRES_USER:-admin}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin123}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
-    restart: unless-stopped
-    networks:
-      - dokploy-network
 
+services:
   # ============================================
   # REDIS - Fluxos, Rate Limit e Cache
   # ============================================
@@ -34,7 +16,7 @@ services:
       - dokploy-network
 
   # ============================================
-  # N8N v2.x - Automação
+  # N8N v2.x - Automação (SQLite)
   # ============================================
   n8n:
     image: n8nio/n8n:2.27.4
@@ -47,17 +29,6 @@ services:
       - WEBHOOK_URL=${WEBHOOK_URL:-http://localhost:5678/}
       - N8N_DEFAULT_BINARY_DATA_MODE=filesystem
       - N8N_RUNNERS_ENABLED=true
-      
-      # REMOVER estas linhas de PostgreSQL
-      # - DB_TYPE=postgresdb
-      # - DB_POSTGRESDB_HOST=postgres
-      # ...
-      
-      # Redis
-      - REDIS_HOST=${REDIS_HOST:-redis}
-      - REDIS_PORT=${REDIS_PORT:-6379}
-      
-      # Timezone
       - TZ=${TZ:-America/Sao_Paulo}
     volumes:
       - n8n_data:/home/node/.n8n
@@ -78,7 +49,7 @@ services:
     image: evoapicloud/evolution-api:v2.3.1
     container_name: evolution-api
     environment:
-      - SERVER_URL=${EVOLUTION_SERVER_URL:-http://localhost:8081}  # ← MUDOU para 8081
+      - SERVER_URL=${EVOLUTION_SERVER_URL:-http://localhost:8081}
       - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY:-evolution_api_key_2026}
       - DATABASE_CONNECTION_URI=mongodb://mongo:27017
       - DATABASE_ENABLED=true
@@ -86,7 +57,7 @@ services:
       - WEBSOCKET_ENABLED=false
       - LOG_LEVEL=info
     ports:
-      - "${EVOLUTION_PORT:-8081}:8080"  # ← MUDOU: 8081 externa → 8080 interna
+      - "${EVOLUTION_PORT:-8081}:8080"
     volumes:
       - evolution_instances:/evolution/instances
     depends_on:
@@ -108,8 +79,6 @@ services:
       - dokploy-network
 
 volumes:
-  postgres_data:
-    driver: local
   redis_data:
     driver: local
   n8n_data:
