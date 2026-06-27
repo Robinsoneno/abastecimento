@@ -34,7 +34,7 @@ services:
       - dokploy-network
 
   # ============================================
-  # N8N v2.x - Automação (sem nodes customizados)
+  # N8N v2.x - Automação
   # ============================================
   n8n:
     image: n8nio/n8n:2.27.4
@@ -76,15 +76,16 @@ services:
       - dokploy-network
 
   # ============================================
-  # EVOLUTION API - WhatsApp Gateway
+  # EVOLUTION API - WhatsApp Gateway (v2.x)
   # ============================================
   evolution-api:
-    image: atendai/evolution-api:latest
+    image: evoapicloud/evolution-api:v2.3.1  # ← CORRIGIDO
     container_name: evolution-api
     environment:
       - SERVER_URL=${EVOLUTION_SERVER_URL:-http://localhost:8080}
       - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY:-evolution_api_key_2026}
       - DATABASE_CONNECTION_URI=mongodb://mongo:27017
+      - DATABASE_ENABLED=true
       - RABBITMQ_ENABLED=false
       - WEBSOCKET_ENABLED=false
       - LOG_LEVEL=info
@@ -122,9 +123,6 @@ volumes:
   mongo_data:
     driver: local
 
-# ============================================
-# NETWORK
-# ============================================
 networks:
   dokploy-network:
     external: true
