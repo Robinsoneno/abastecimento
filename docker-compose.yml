@@ -79,10 +79,10 @@ services:
   # EVOLUTION API - WhatsApp Gateway (v2.x)
   # ============================================
   evolution-api:
-    image: evoapicloud/evolution-api:v2.3.1  # ← CORRIGIDO
+    image: evoapicloud/evolution-api:v2.3.1
     container_name: evolution-api
     environment:
-      - SERVER_URL=${EVOLUTION_SERVER_URL:-http://localhost:8080}
+      - SERVER_URL=${EVOLUTION_SERVER_URL:-http://localhost:8081}  # ← MUDOU para 8081
       - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY:-evolution_api_key_2026}
       - DATABASE_CONNECTION_URI=mongodb://mongo:27017
       - DATABASE_ENABLED=true
@@ -90,7 +90,7 @@ services:
       - WEBSOCKET_ENABLED=false
       - LOG_LEVEL=info
     ports:
-      - "${EVOLUTION_PORT:-8080}:8080"
+      - "${EVOLUTION_PORT:-8081}:8080"  # ← MUDOU: 8081 externa → 8080 interna
     volumes:
       - evolution_instances:/evolution/instances
     depends_on:
