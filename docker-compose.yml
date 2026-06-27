@@ -48,13 +48,10 @@ services:
       - N8N_DEFAULT_BINARY_DATA_MODE=filesystem
       - N8N_RUNNERS_ENABLED=true
       
-      # PostgreSQL
-      - DB_TYPE=postgresdb
-      - DB_POSTGRESDB_HOST=postgres
-      - DB_POSTGRESDB_PORT=5432
-      - DB_POSTGRESDB_DATABASE=n8n
-      - DB_POSTGRESDB_USER=${POSTGRES_USER:-admin}
-      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD:-admin123}
+      # REMOVER estas linhas de PostgreSQL
+      # - DB_TYPE=postgresdb
+      # - DB_POSTGRESDB_HOST=postgres
+      # ...
       
       # Redis
       - REDIS_HOST=${REDIS_HOST:-redis}
@@ -69,7 +66,6 @@ services:
     ports:
       - "${N8N_PORT:-5678}:${N8N_PORT:-5678}"
     depends_on:
-      - postgres
       - redis
     restart: unless-stopped
     networks:
