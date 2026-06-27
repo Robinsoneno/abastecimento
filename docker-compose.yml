@@ -34,10 +34,10 @@ services:
       - dokploy-network
 
   # ============================================
-  # N8N - Automação (sem nodes customizados)
+  # N8N v2.x - Automação (sem nodes customizados)
   # ============================================
   n8n:
-    image: n8nio/n8n:1.123.16
+    image: n8nio/n8n:2.27.4
     container_name: ${API_CONTAINER_NAME:-abastecimento-api}
     environment:
       - N8N_HOST=${N8N_HOST:-0.0.0.0}
@@ -46,7 +46,7 @@ services:
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:-8uJm7vYh2xNf4QsW9ZcR3tGp5LkD6aB0}
       - WEBHOOK_URL=${WEBHOOK_URL:-http://localhost:5678/}
       - N8N_DEFAULT_BINARY_DATA_MODE=filesystem
-      - N8N_COMMUNITY_PACKAGES_ENABLED=true
+      - N8N_RUNNERS_ENABLED=true
       
       # PostgreSQL
       - DB_TYPE=postgresdb
