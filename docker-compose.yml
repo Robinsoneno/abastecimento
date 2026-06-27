@@ -37,7 +37,9 @@ services:
   # N8N CUSTOM + BAILEYS (API + Automação)
   # ============================================
   n8n:
-    image: n8nio/n8n:1.123.16 
+    build: 
+      context: .
+      dockerfile: Dockerfile
     container_name: ${API_CONTAINER_NAME:-abastecimento-api}
     environment:
       - N8N_HOST=${N8N_HOST:-0.0.0.0}
