@@ -5,9 +5,9 @@ USER root
 # Instala Python e ferramentas de build
 RUN apk add --no-cache python3 make g++ gcc git
 
-# Instala o node Bailey
+# Instala node alternativo mais estável
 RUN cd /home/node/.n8n && \
-    npm install @jazario/n8n-nodes-bailey --save && \
+    npm install n8n-nodes-whatsapp --save && \
     chown -R node:node /home/node/.n8n
 
 USER node
