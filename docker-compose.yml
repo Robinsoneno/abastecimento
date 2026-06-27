@@ -37,7 +37,7 @@ services:
   # N8N CUSTOM + BAILEYS (API + Automação)
   # ============================================
   n8n:
-    image: n8nio/n8n:1.75.2  # ← Mude de 'build' para 'image' com versão específica
+    image: n8nio/n8n:1.75.2
     container_name: ${API_CONTAINER_NAME:-abastecimento-api}
     environment:
       - N8N_HOST=${N8N_HOST:-0.0.0.0}
@@ -81,14 +81,11 @@ volumes:
     driver: local
   redis_data:
     driver: local
-  n8n_binary_data:  # Renomeado para clareza
+  n8n_data:          # ← ADICIONADO
     driver: local
   n8n_sessions:
     driver: local
 
-# ============================================
-# NETWORK
-# ============================================
 networks:
   dokploy-network:
     external: true
